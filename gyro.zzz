@@ -1,0 +1,6 @@
+deps:
+  requestz:
+    git:
+      url: "https://github.com/axgdev/requestz"
+      ref: master
+      root: src/main.zig
