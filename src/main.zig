@@ -41,10 +41,7 @@ pub fn main() anyerror!void {
     try stdout.writeAll(responseBody);
     std.log.err("{s}", .{responseBody});
 
-    var parser = std.json.Parser.init(allocator, false);
-    defer parser.deinit();
-
-    var tree = try parser.parse(responseBody);
+    var tree = try response.json();
     defer tree.deinit();
 
     var result = tree.root.Object.get("result").?;
