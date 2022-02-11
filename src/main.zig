@@ -2,8 +2,6 @@ const std = @import("std");
 const Client = @import("requestz").Client;
 
 pub fn main() anyerror!void {
-    //std.log.err("All your codebase are belong to us.", .{});
-
     //var gpa: std.heap.GeneralPurposeAllocator(.{}) = .{};
     //defer _ = gpa.deinit();
     //const allocator = gpa.allocator();
@@ -19,7 +17,6 @@ pub fn main() anyerror!void {
     const file = try std.fs.cwd().openFile(
         "token.txt",
         .{ .mode = .read_only }
-        //.{ .read = true },
     );
     defer file.close();
 
@@ -31,11 +28,9 @@ pub fn main() anyerror!void {
     );
     defer allocator.free(token_file);
 
-    const token = token_file[0..token_length];
+    const token = token_file[0..token_length]; //ignore the last character
 
-    std.debug.print("\n{d}\n", .{token.len});
     const methodName = "getUpdates";
-    //const telegramUrl = "https://api.telegram.org/bot" ++ token ++ "/" ++ methodName;
     const telegramUrlTemplate = "https://api.telegram.org/bot{s}/" ++ methodName;
     const telegramUrl = std.fmt.allocPrint(allocator, telegramUrlTemplate, .{ token }) catch unreachable;
 
@@ -59,9 +54,6 @@ pub fn main() anyerror!void {
     var chat = message.Object.get("chat").?;
     var chatId = chat.Object.get("id").?;
 
-    //var text = result[1].Array.get("text").?;
-
-    //std.debug.print(i
     std.debug.print("\n{s}\n", .{text.String});
     std.debug.print("\n{d}\n", .{chatId.Integer});
 
@@ -69,18 +61,14 @@ pub fn main() anyerror!void {
     const sendMessageUrlTemplate = "https://api.telegram.org/bot{s}/" ++ messageMethod;
     const sendMessageUrl = std.fmt.allocPrint(allocator, sendMessageUrlTemplate, .{ token }) catch unreachable;
 
-    const rawJson = "\"chat_id\": {d}, \"text\": \"{s}\"";
-    //const rawJson =
-    //    \\ {
-    //    \\   "chat_id": {d}, "text": {s}
-    //    \\ }
-    //;
-    //const rawJson = "Hi{d}{s}";
-    //std.debug.print(rawJson, .{});
+    const rawJson =
+       \\ {{
+       \\   "chat_id": {d}, "text": "{s}"
+       \\ }}
+    ;
 
     const echoResponseJsonString = std.fmt.allocPrint(allocator, rawJson, .{ chatId.Integer, text.String }) catch unreachable;
-    const echoComplete = std.fmt.allocPrint(allocator, "{{ {s} }}", .{echoResponseJsonString}) catch unreachable;
-    //const echoResponseJsonString = std.fmt.allocPrint(allocator, "{d}{s}", .{ 10, "text" }) catch unreachable;
+    const echoComplete = std.fmt.allocPrint(allocator, "{s}", .{echoResponseJsonString}) catch unreachable;
     defer allocator.free(echoResponseJsonString);
 
     var headers = .{.{ "Content-Type", "application/json" }};
@@ -91,8 +79,4 @@ pub fn main() anyerror!void {
     defer response1.deinit();
 
     std.debug.print("\n{s}\n", .{response1.body});
-}
-
-test "basic test" {
-    try std.testing.expectEqual(10, 3 + 7);
 }
