@@ -52,7 +52,7 @@ pub fn getUpdates(allocator: std.mem.Allocator, client: Client, token: []u8) !st
     const telegramUrl = std.fmt.allocPrint(allocator, telegramUrlTemplate, .{ token }) catch unreachable;
 
     var response = try client.get(telegramUrl, .{});
-    //defer response.deinit(); //TODO: How to deinit this, how to copy the tree, so that when we deinit the response, the tree survives
+    //defer response.deinit(); //TODO: This need to be uncommented, however how to deinit this, how to copy the tree, so that when we deinit the response, the tree survives
     const responseBody = response.body;
     const stdout = std.io.getStdOut().writer();
     try stdout.writeAll(responseBody);
