@@ -1,6 +1,11 @@
 const std = @import("std");
 const Client = @import("requestz").Client;
 
+pub const Update = struct {
+    chatId: i64,
+    text: []const u8,
+};
+
 pub fn main() anyerror!void {
     //var gpa: std.heap.GeneralPurposeAllocator(.{}) = .{};
     //defer _ = gpa.deinit();
@@ -16,9 +21,11 @@ pub fn main() anyerror!void {
 
     const token = getToken(allocator) catch unreachable;
     defer allocator.free(token);
-    var tree = getUpdates(allocator, client, token) catch unreachable;
-    defer tree.deinit();
-    try sendMessage(allocator, client, token, tree);
+
+    var update = try getUpdates(allocator, client, token);
+    defer allocator.free(update.text);
+
+    try sendMessage(allocator, client, token, update);
 }
 
 pub fn getToken(allocator: std.mem.Allocator) ![]u8 {
@@ -45,26 +52,23 @@ pub fn getToken(allocator: std.mem.Allocator) ![]u8 {
     return token;
 }
 
-pub fn getUpdates(allocator: std.mem.Allocator, client: Client, token: []u8) !std.json.ValueTree {
+pub fn getUpdates(allocator: std.mem.Allocator, client: Client, token: []u8) !Update {
     const methodName = "getUpdates";
     const telegramUrlTemplate = "https://api.telegram.org/bot{s}/" ++ methodName;
     //std.debug.print("\nToken: {s}\n", .{token});
     const telegramUrl = std.fmt.allocPrint(allocator, telegramUrlTemplate, .{ token }) catch unreachable;
 
     var response = try client.get(telegramUrl, .{});
-    //defer response.deinit(); //TODO: This need to be uncommented, however how to deinit this, how to copy the tree, so that when we deinit the response, the tree survives
+    defer response.deinit();
     const responseBody = response.body;
     const stdout = std.io.getStdOut().writer();
     try stdout.writeAll(responseBody);
     std.log.err("{s}", .{responseBody});
 
     var tree = try response.json();
+    defer tree.deinit();
     
     //var tree_alloc = allocator.dupe(!std.json.ValueTree, tree);
-    return tree;
-}
-
-pub fn sendMessage(allocator: std.mem.Allocator, client: Client, token: []u8, tree: std.json.ValueTree) !void {
     var result = tree.root.Object.get("result").?;
     var lastIndex = result.Array.items.len - 1;
     var message = result.Array.items[lastIndex].Object.get("message").?;
@@ -74,7 +78,13 @@ pub fn sendMessage(allocator: std.mem.Allocator, client: Client, token: []u8, tr
 
     std.debug.print("\n{s}\n", .{text.String});
     std.debug.print("\n{d}\n", .{chatId.Integer});
+    return Update{
+        .chatId = chatId.Integer,
+        .text = try allocator.dupe(u8, text.String),
+    };
+}
 
+pub fn sendMessage(allocator: std.mem.Allocator, client: Client, token: []u8, update: Update) !void {
     const messageMethod = "sendMessage";
     const sendMessageUrlTemplate = "https://api.telegram.org/bot{s}/" ++ messageMethod;
     const sendMessageUrl = std.fmt.allocPrint(allocator, sendMessageUrlTemplate, .{ token }) catch unreachable;
@@ -85,7 +95,7 @@ pub fn sendMessage(allocator: std.mem.Allocator, client: Client, token: []u8, tr
        \\ }}
     ;
 
-    const echoResponseJsonString = std.fmt.allocPrint(allocator, rawJson, .{ chatId.Integer, text.String }) catch unreachable;
+    const echoResponseJsonString = std.fmt.allocPrint(allocator, rawJson, .{ update.chatId, update.text }) catch unreachable;
     const echoComplete = std.fmt.allocPrint(allocator, "{s}", .{echoResponseJsonString}) catch unreachable;
     defer allocator.free(echoResponseJsonString);
 
