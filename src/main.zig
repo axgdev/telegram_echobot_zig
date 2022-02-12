@@ -14,6 +14,14 @@ pub fn main() anyerror!void {
     var client = try Client.init(allocator);
     defer client.deinit();
 
+    const token = getToken(allocator) catch unreachable;
+    defer allocator.free(token);
+    var tree = getUpdates(allocator, client, token) catch unreachable;
+    defer tree.deinit();
+    try sendMessage(allocator, client, token, tree);
+}
+
+pub fn getToken(allocator: std.mem.Allocator) ![]u8 {
     const file = try std.fs.cwd().openFile(
         "token.txt",
         .{ .mode = .read_only }
@@ -28,22 +36,35 @@ pub fn main() anyerror!void {
     );
     defer allocator.free(token_file);
 
-    const token = token_file[0..token_length]; //ignore the last character
+    // const token = try allocator.alloc(u8, token_length);
+    // // errdefer allocator.free(token);
+    // std.mem.copy(u8, token, token_file[0..token_length]);
+    const token = allocator.dupe(u8, token_file[0..token_length]);
+    //const token = token_file[0..token_length]; //ignore the last character
+    std.debug.print("\nToken: {s}\n", .{token});
+    return token;
+}
 
+pub fn getUpdates(allocator: std.mem.Allocator, client: Client, token: []u8) !std.json.ValueTree {
     const methodName = "getUpdates";
     const telegramUrlTemplate = "https://api.telegram.org/bot{s}/" ++ methodName;
+    //std.debug.print("\nToken: {s}\n", .{token});
     const telegramUrl = std.fmt.allocPrint(allocator, telegramUrlTemplate, .{ token }) catch unreachable;
 
     var response = try client.get(telegramUrl, .{});
-    defer response.deinit();
+    //defer response.deinit(); //TODO: How to deinit this, how to copy the tree, so that when we deinit the response, the tree survives
     const responseBody = response.body;
     const stdout = std.io.getStdOut().writer();
     try stdout.writeAll(responseBody);
     std.log.err("{s}", .{responseBody});
 
     var tree = try response.json();
-    defer tree.deinit();
+    
+    //var tree_alloc = allocator.dupe(!std.json.ValueTree, tree);
+    return tree;
+}
 
+pub fn sendMessage(allocator: std.mem.Allocator, client: Client, token: []u8, tree: std.json.ValueTree) !void {
     var result = tree.root.Object.get("result").?;
     var lastIndex = result.Array.items.len - 1;
     var message = result.Array.items[lastIndex].Object.get("message").?;
