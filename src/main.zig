@@ -2,6 +2,7 @@ const std = @import("std");
 const Client = @import("requestz").Client;
 
 pub const Update = struct {
+    updateId: i64,
     chatId: i64,
     text: []const u8,
 };
@@ -78,16 +79,17 @@ pub fn getUpdates(allocator: std.mem.Allocator, client: Client, token: []u8) !Up
     }
 
     var lastIndex = result.Array.items.len - 1;
-    var update_id = result.Array.items[0].Object.get("update_id").?.Integer;
+    var updateId = result.Array.items[0].Object.get("update_id").?.Integer;
     var message = result.Array.items[lastIndex].Object.get("message").?;
     var text = message.Object.get("text").?;
     var chat = message.Object.get("chat").?;
     var chatId = chat.Object.get("id").?;
 
-    std.debug.print("\nUpdateId: {d}\n", .{update_id});
+    std.debug.print("\nUpdateId: {d}\n", .{updateId});
     std.debug.print("\nText: {s}\n", .{text.String});
     std.debug.print("\nChatId: {d}\n", .{chatId.Integer});
     return Update{
+        .updateId = updateId,
         .chatId = chatId.Integer,
         .text = try allocator.dupe(u8, text.String),
     };
