@@ -57,17 +57,35 @@ pub fn getToken(allocator: std.mem.Allocator) ![]u8 {
 }
 
 pub fn getUpdates(allocator: std.mem.Allocator, client: Client, token: []u8) !Update {
-    const methodName = "getUpdates";
+    //const methodName = "getUpdates?offset=431529665";
+    const methodName = "getUpdates?offset=-1";
+    //const methodName = "getUpdates";
     const telegramUrlTemplate = "https://api.telegram.org/bot{s}/" ++ methodName;
     //std.debug.print("\nToken: {s}\n", .{token});
     const telegramUrl = try std.fmt.allocPrint(allocator, telegramUrlTemplate, .{ token });
+    std.debug.print("\n{s}\n", .{telegramUrl});
 
     var response = try client.get(telegramUrl, .{});
-    defer response.deinit();
+
+    // const rawJsonOffset = \\ { "offset": 431529663 }
+    // ;
+
+    //var response = try client.get(telegramUrl, .{.content=rawJsonOffset});
+
+    // const rawJson = \\ { "mykey": "myVal" }
+    // ;
+    // var headers = .{
+    //     .{"Gotta-go", "Fast!"}
+    // };
+    // var response = try client.get("https://httpbin.org/response-headers?mykey=myval&mykey1=myval1", .{ .headers = headers});
+    // defer response.deinit();
+
+    // const responseHeaders = response.headers;
+    // std.debug.print("{s}", .{responseHeaders.list("X-mykey")});
+
+
     const responseBody = response.body;
-    const stdout = std.io.getStdOut().writer();
-    try stdout.writeAll(responseBody);
-    std.log.err("{s}", .{responseBody});
+    std.debug.print("{s}", .{responseBody});
 
     var tree = try response.json();
     defer tree.deinit();
