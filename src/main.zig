@@ -6,6 +6,10 @@ pub const Update = struct {
     text: []const u8,
 };
 
+const GetUpdatesError = error{
+    NoMessages
+};
+
 pub fn main() anyerror!void {
     //var gpa: std.heap.GeneralPurposeAllocator(.{}) = .{};
     //defer _ = gpa.deinit();
@@ -70,6 +74,11 @@ pub fn getUpdates(allocator: std.mem.Allocator, client: Client, token: []u8) !Up
     
     //var tree_alloc = allocator.dupe(!std.json.ValueTree, tree);
     var result = tree.root.Object.get("result").?;
+
+    if (result.Array.items.len < 1) {
+        return GetUpdatesError.NoMessages;
+    }
+
     var lastIndex = result.Array.items.len - 1;
     var message = result.Array.items[lastIndex].Object.get("message").?;
     var text = message.Object.get("text").?;
