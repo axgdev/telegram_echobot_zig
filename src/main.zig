@@ -19,7 +19,7 @@ pub fn main() anyerror!void {
     var client = try Client.init(allocator);
     defer client.deinit();
 
-    const token = getToken(allocator) catch unreachable;
+    const token = try getToken(allocator);
     defer allocator.free(token);
 
     var update = try getUpdates(allocator, client, token);
@@ -56,7 +56,7 @@ pub fn getUpdates(allocator: std.mem.Allocator, client: Client, token: []u8) !Up
     const methodName = "getUpdates";
     const telegramUrlTemplate = "https://api.telegram.org/bot{s}/" ++ methodName;
     //std.debug.print("\nToken: {s}\n", .{token});
-    const telegramUrl = std.fmt.allocPrint(allocator, telegramUrlTemplate, .{ token }) catch unreachable;
+    const telegramUrl = try std.fmt.allocPrint(allocator, telegramUrlTemplate, .{ token });
 
     var response = try client.get(telegramUrl, .{});
     defer response.deinit();
@@ -87,7 +87,7 @@ pub fn getUpdates(allocator: std.mem.Allocator, client: Client, token: []u8) !Up
 pub fn sendMessage(allocator: std.mem.Allocator, client: Client, token: []u8, update: Update) !void {
     const messageMethod = "sendMessage";
     const sendMessageUrlTemplate = "https://api.telegram.org/bot{s}/" ++ messageMethod;
-    const sendMessageUrl = std.fmt.allocPrint(allocator, sendMessageUrlTemplate, .{ token }) catch unreachable;
+    const sendMessageUrl = try std.fmt.allocPrint(allocator, sendMessageUrlTemplate, .{ token });
 
     const rawJson =
        \\ {{
@@ -95,8 +95,8 @@ pub fn sendMessage(allocator: std.mem.Allocator, client: Client, token: []u8, up
        \\ }}
     ;
 
-    const echoResponseJsonString = std.fmt.allocPrint(allocator, rawJson, .{ update.chatId, update.text }) catch unreachable;
-    const echoComplete = std.fmt.allocPrint(allocator, "{s}", .{echoResponseJsonString}) catch unreachable;
+    const echoResponseJsonString = try std.fmt.allocPrint(allocator, rawJson, .{ update.chatId, update.text });
+    const echoComplete = try std.fmt.allocPrint(allocator, "{s}", .{echoResponseJsonString});
     defer allocator.free(echoResponseJsonString);
 
     var headers = .{.{ "Content-Type", "application/json" }};
