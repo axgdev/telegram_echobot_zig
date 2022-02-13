@@ -57,32 +57,12 @@ pub fn getToken(allocator: std.mem.Allocator) ![]u8 {
 }
 
 pub fn getUpdates(allocator: std.mem.Allocator, client: Client, token: []u8) !Update {
-    //const methodName = "getUpdates?offset=431529665";
     const methodName = "getUpdates?offset=-1";
-    //const methodName = "getUpdates";
     const telegramUrlTemplate = "https://api.telegram.org/bot{s}/" ++ methodName;
-    //std.debug.print("\nToken: {s}\n", .{token});
     const telegramUrl = try std.fmt.allocPrint(allocator, telegramUrlTemplate, .{ token });
     std.debug.print("\n{s}\n", .{telegramUrl});
 
     var response = try client.get(telegramUrl, .{});
-
-    // const rawJsonOffset = \\ { "offset": 431529663 }
-    // ;
-
-    //var response = try client.get(telegramUrl, .{.content=rawJsonOffset});
-
-    // const rawJson = \\ { "mykey": "myVal" }
-    // ;
-    // var headers = .{
-    //     .{"Gotta-go", "Fast!"}
-    // };
-    // var response = try client.get("https://httpbin.org/response-headers?mykey=myval&mykey1=myval1", .{ .headers = headers});
-    // defer response.deinit();
-
-    // const responseHeaders = response.headers;
-    // std.debug.print("{s}", .{responseHeaders.list("X-mykey")});
-
 
     const responseBody = response.body;
     std.debug.print("{s}", .{responseBody});
@@ -98,13 +78,15 @@ pub fn getUpdates(allocator: std.mem.Allocator, client: Client, token: []u8) !Up
     }
 
     var lastIndex = result.Array.items.len - 1;
+    var update_id = result.Array.items[0].Object.get("update_id").?.Integer;
     var message = result.Array.items[lastIndex].Object.get("message").?;
     var text = message.Object.get("text").?;
     var chat = message.Object.get("chat").?;
     var chatId = chat.Object.get("id").?;
 
-    std.debug.print("\n{s}\n", .{text.String});
-    std.debug.print("\n{d}\n", .{chatId.Integer});
+    std.debug.print("\nUpdateId: {d}\n", .{update_id});
+    std.debug.print("\nText: {s}\n", .{text.String});
+    std.debug.print("\nChatId: {d}\n", .{chatId.Integer});
     return Update{
         .chatId = chatId.Integer,
         .text = try allocator.dupe(u8, text.String),
@@ -116,10 +98,7 @@ pub fn sendMessage(allocator: std.mem.Allocator, client: Client, token: []u8, up
     const sendMessageUrlTemplate = "https://api.telegram.org/bot{s}/" ++ messageMethod;
     const sendMessageUrl = try std.fmt.allocPrint(allocator, sendMessageUrlTemplate, .{ token });
 
-    const rawJson =
-       \\ {{
-       \\   "chat_id": {d}, "text": "{s}"
-       \\ }}
+    const rawJson = \\ {{ "chat_id": {d}, "text": "{s}" }}
     ;
 
     const echoResponseJsonString = try std.fmt.allocPrint(allocator, rawJson, .{ update.chatId, update.text });
