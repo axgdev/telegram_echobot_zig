@@ -12,25 +12,55 @@ const GetUpdatesError = error{
 };
 
 pub fn main() anyerror!void {
-    //var gpa: std.heap.GeneralPurposeAllocator(.{}) = .{};
+    try runEchoBot();
+}
+
+pub fn runEchoBot() anyerror!void {
+        //var gpa: std.heap.GeneralPurposeAllocator(.{}) = .{};
     //defer _ = gpa.deinit();
     //const allocator = gpa.allocator();
 
-    //var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    //defer arena.deinit();
-    //const allocator = arena.allocator();
-    const allocator = std.testing.allocator;
+    // var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    // defer arena.deinit();
+    // const allocator = arena.allocator();
+    // const initial_allocator = std.testing.allocator;
 
-    var client = try Client.init(allocator);
-    defer client.deinit();
+    var buffer: [94]u8 = undefined;
+    var fba = std.heap.FixedBufferAllocator.init(&buffer);
+    const token_allocator = fba.allocator();
 
-    const token = try getToken(allocator);
-    defer allocator.free(token);
+    const token = try getToken(token_allocator);
+    defer token_allocator.free(token);
 
-    var update = try getUpdates(allocator, client, token);
-    defer allocator.free(update.text);
+    // const stdout = std.io.getStdOut().writer();
+    // try stdout.print("Press q to quit: ", .{});
 
-    try sendMessage(allocator, client, token, update);
+    
+    // var buf: [1]u8 = undefined;
+    // const stdin = std.io.getStdIn().reader();
+
+    var updateId: i64 = undefined;
+
+    while (true) {
+        var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+        defer arena.deinit();
+        const allocator = arena.allocator();
+
+        var client = try Client.init(allocator);
+        defer client.deinit();
+
+        defer std.time.sleep(1e+10);
+        var update = try getUpdates(allocator, client, token);
+        defer allocator.free(update.text);
+
+        var newUpdateId = update.updateId;
+        if (updateId == newUpdateId) {
+            continue;
+        }
+
+        updateId = newUpdateId;
+        try sendMessage(allocator, client, token, update);
+    }
 }
 
 pub fn getToken(allocator: std.mem.Allocator) ![]u8 {
