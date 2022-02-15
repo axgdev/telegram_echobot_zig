@@ -16,28 +16,12 @@ pub fn main() anyerror!void {
 }
 
 pub fn runEchoBot() anyerror!void {
-    //var gpa: std.heap.GeneralPurposeAllocator(.{}) = .{};
-    //defer _ = gpa.deinit();
-    //const allocator = gpa.allocator();
-
-    // var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    // defer arena.deinit();
-    // const allocator = arena.allocator();
-    // const initial_allocator = std.testing.allocator;
-
     var buffer: [94]u8 = undefined;
     var fba = std.heap.FixedBufferAllocator.init(&buffer);
     const token_allocator = fba.allocator();
 
     const token = try getToken(token_allocator);
     defer token_allocator.free(token);
-
-    // const stdout = std.io.getStdOut().writer();
-    // try stdout.print("Press q to quit: ", .{});
-
-    
-    // var buf: [1]u8 = undefined;
-    // const stdin = std.io.getStdIn().reader();
 
     var updateId: i64 = undefined;
 
@@ -78,12 +62,7 @@ pub fn getToken(allocator: std.mem.Allocator) ![]u8 {
     );
     defer allocator.free(token_file);
 
-    // const token = try allocator.alloc(u8, token_length);
-    // // errdefer allocator.free(token);
-    // std.mem.copy(u8, token, token_file[0..token_length]);
     const token = allocator.dupe(u8, token_file[0..token_length]);
-    //const token = token_file[0..token_length]; //ignore the last character
-    //std.debug.print("\nToken: {s}\n", .{token});
     return token;
 }
 
@@ -91,17 +70,12 @@ pub fn getUpdates(allocator: std.mem.Allocator, client: Client, token: []u8) !Up
     const methodName = "getUpdates?offset=-1";
     const telegramUrlTemplate = "https://api.telegram.org/bot{s}/" ++ methodName;
     const telegramUrl = try std.fmt.allocPrint(allocator, telegramUrlTemplate, .{ token });
-    // std.debug.print("\n{s}\n", .{telegramUrl});
 
     var response = try client.get(telegramUrl, .{});
-
-    // const responseBody = response.body;
-    // std.debug.print("{s}", .{responseBody});
 
     var tree = try response.json();
     defer tree.deinit();
     
-    //var tree_alloc = allocator.dupe(!std.json.ValueTree, tree);
     var result = tree.root.Object.get("result").?;
 
     if (result.Array.items.len < 1) {
@@ -115,9 +89,6 @@ pub fn getUpdates(allocator: std.mem.Allocator, client: Client, token: []u8) !Up
     var chat = message.Object.get("chat").?;
     var chatId = chat.Object.get("id").?;
 
-    // std.debug.print("\nUpdateId: {d}\n", .{updateId});
-    // std.debug.print("\nText: {s}\n", .{text.String});
-    // std.debug.print("\nChatId: {d}\n", .{chatId.Integer});
     return Update{
         .updateId = updateId,
         .chatId = chatId.Integer,
