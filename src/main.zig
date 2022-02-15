@@ -16,7 +16,7 @@ pub fn main() anyerror!void {
 }
 
 pub fn runEchoBot() anyerror!void {
-        //var gpa: std.heap.GeneralPurposeAllocator(.{}) = .{};
+    //var gpa: std.heap.GeneralPurposeAllocator(.{}) = .{};
     //defer _ = gpa.deinit();
     //const allocator = gpa.allocator();
 
@@ -83,7 +83,7 @@ pub fn getToken(allocator: std.mem.Allocator) ![]u8 {
     // std.mem.copy(u8, token, token_file[0..token_length]);
     const token = allocator.dupe(u8, token_file[0..token_length]);
     //const token = token_file[0..token_length]; //ignore the last character
-    std.debug.print("\nToken: {s}\n", .{token});
+    //std.debug.print("\nToken: {s}\n", .{token});
     return token;
 }
 
@@ -91,12 +91,12 @@ pub fn getUpdates(allocator: std.mem.Allocator, client: Client, token: []u8) !Up
     const methodName = "getUpdates?offset=-1";
     const telegramUrlTemplate = "https://api.telegram.org/bot{s}/" ++ methodName;
     const telegramUrl = try std.fmt.allocPrint(allocator, telegramUrlTemplate, .{ token });
-    std.debug.print("\n{s}\n", .{telegramUrl});
+    // std.debug.print("\n{s}\n", .{telegramUrl});
 
     var response = try client.get(telegramUrl, .{});
 
-    const responseBody = response.body;
-    std.debug.print("{s}", .{responseBody});
+    // const responseBody = response.body;
+    // std.debug.print("{s}", .{responseBody});
 
     var tree = try response.json();
     defer tree.deinit();
@@ -115,9 +115,9 @@ pub fn getUpdates(allocator: std.mem.Allocator, client: Client, token: []u8) !Up
     var chat = message.Object.get("chat").?;
     var chatId = chat.Object.get("id").?;
 
-    std.debug.print("\nUpdateId: {d}\n", .{updateId});
-    std.debug.print("\nText: {s}\n", .{text.String});
-    std.debug.print("\nChatId: {d}\n", .{chatId.Integer});
+    // std.debug.print("\nUpdateId: {d}\n", .{updateId});
+    // std.debug.print("\nText: {s}\n", .{text.String});
+    // std.debug.print("\nChatId: {d}\n", .{chatId.Integer});
     return Update{
         .updateId = updateId,
         .chatId = chatId.Integer,
